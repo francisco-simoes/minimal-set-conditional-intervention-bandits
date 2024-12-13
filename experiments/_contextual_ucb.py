@@ -2,6 +2,7 @@ from typing import Optional
 
 import numpy as np
 from scipy.stats import bernoulli, rv_discrete
+from tqdm import tqdm
 
 from _ucb import UCB
 from _utils import RandomVariable
@@ -20,6 +21,9 @@ class ContextualUCB:
 
     There will be a UCB instance for each context c (we assume discrete contexts).
     At each iteration, a context is sampled, after which UCB(c) performs an iteration.
+
+    reward_cpd: 2D array of RandomVariable instances. Each element reward_cpd[c,a] is
+    the distribution of the reward X given the context C=c and action A=a.
     """
 
     # NOTE: not sure yet what reward_cpd should be: maybe an array of distributions
@@ -55,13 +59,11 @@ the optimal rewards.\n"""
             self.ucbs[i]._initialize_run()
             self.total_pulls = 0  # Total number of pulls during run
             self.contexts = []  # Contexts observed during run
+            # A run is characterized by tuples (c_t, p(c_t), a_t, p(a_t), x_t).
             self.sampled_contexts_probs = []  # Probability of each observed context
             self.selected_arms = []  # Pulled arms during a run
+            self.pulled_arm_probs = []  # Probabilities of the pulled arms
             self.observed_rewards = []  # Rewards observed during run
-            # self.pulled_arm_probs = []  # Probabilities of pulled arms
-            # self.arm_expected_rewards = np.zeros(
-            #     self.n_arms
-            # )  # Expected reward for each arm, for each context
             self.cumulative_regrets = []  # (Instantaneous) cumulative regrets
             self.best_policy = None
 
@@ -69,7 +71,7 @@ the optimal rewards.\n"""
         if fresh_start:
             self._initialize_run()
 
-        for _ in range(n_rounds):
+        for _ in tqdm(range(n_rounds)):
             # Sample context for this round
             context, context_prob = self.context_distribution.sample()
             context = context.item()
@@ -82,10 +84,29 @@ the optimal rewards.\n"""
             self.total_pulls += 1
             self.contexts += [context]
             self.sampled_contexts_probs += [context_prob]
+            self.selected_arms += [ucb.selected_arms[-1]]
+            self.pulled_arm_probs += [ucb.pulled_arm_probs[-1]]
+            self.observed_rewards += [ucb.observed_rewards[-1]]
 
         # Record run details into UCB instances' attributes
         for ucb in self.ucbs:
             ucb.record_details()
+
+        # Compute cumulative regret(s)
+        for i in range(n_rounds):
+            c = self.contexts[i]
+            ucb = self.ucbs[c]
+            optimal_arm = ucb.best_arm  # Each context has a best arm
+            pulled_arm = self.selected_arms[i]
+            instant_regret = (
+                ucb.arm_expected_rewards[optimal_arm]
+                - ucb.arm_expected_rewards[pulled_arm]
+            )
+            if i == 0:
+                cum_regret = instant_regret
+            else:
+                cum_regret = self.cumulative_regrets[-1] + instant_regret
+            self.cumulative_regrets += [cum_regret]
 
         # The best policy corresponds to pulling the best arm for each context
         # Thus: we need the best arm from each UCB instance
@@ -93,12 +114,17 @@ the optimal rewards.\n"""
         for c in range(self.n_contexts):
             self.best_policy[c] = self.ucbs[c].best_arm
 
-        # fmt:off
-        import ipdb; ipdb.set_trace() # noqa
-        # fmt:on
-        #
-        # TODO compute regret for the contextual bandit? And compute best
-        # policy by collecting best arms of each bandit (of each context)
+        history = {
+            "sampled_contexts": self.contexts,
+            "selected_arms": self.selected_arms,
+            "observed_rewards": self.observed_rewards,
+            "context_probs": self.sampled_contexts_probs,
+            "arm_probs": self.pulled_arm_probs,
+            "cum_regrets": self.cumulative_regrets,
+            "best_policy": self.best_policy,
+        }
+
+        return history
 
 
 # Example usage
@@ -116,11 +142,16 @@ if __name__ == "__main__":
     n_rounds = 10000
 
     cont_ucb = ContextualUCB(context_distribution, reward_cpd)
-    cont_ucb.run(n_rounds)
+    history = cont_ucb.run(n_rounds)
 
-    # print("Total Reward:", sum(history["observed_rewards"]))
-    # print("Number of times each arm was pulled:", ucb.arm_counts)
-    # print("Estimated expected reward for each arm:", ucb.arm_expected_rewards)
-    # from matplotlib.pyplot import plot, show
-    # plot(ucb.cumulative_regrets)
-    # show()
+    print("Total Reward:", sum(history["observed_rewards"]))
+    print("Best Policy:", history["best_policy"])
+
+    from matplotlib.pyplot import plot, show
+
+    plot(cont_ucb.cumulative_regrets)
+    show()
+
+    # # fmt:off
+    # import ipdb; ipdb.set_trace() # noqa
+    # # fmt:on
