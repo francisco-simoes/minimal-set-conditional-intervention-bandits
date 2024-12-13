@@ -2,8 +2,12 @@
 # from a post-intervention dist. So, I should create another file with an SCM class
 # with a do() method creating distributions with a sample() method. These distributions
 # can be fed to this UCB class as elements of the "reward_distributions" list.
+# TODO: the "arm pulling" must, in our case, be conditional on a context.
+# We will have one UCB per context. Will create a ContextualUCB class corresopnding
+# to one UCB per context.
 
 from itertools import accumulate
+from typing import Optional
 
 import numpy as np
 from scipy.stats import bernoulli
@@ -13,18 +17,26 @@ from _utils import RandomVariable
 
 
 class UCB:
-    def __init__(self, reward_distributions, optimal_expected_reward=None):
+    """Run UCB on a bandit problem and store results.
+
+    The (finite, stochastic) bandit problem is characterized
+    by a set of reward distributions, one for each action/arm.
+    """
+
+    def __init__(
+        self,
+        reward_distributions: list[RandomVariable],
+        optimal_expected_reward: Optional[float] = None,
+    ):
         self.reward_distributions = reward_distributions
         self.n_arms = len(self.reward_distributions)
-        if optimal_expected_reward is not None:
-            self.optimal_expected_reward = optimal_expected_reward
-        else:
+        if optimal_expected_reward is None:
             print(
-                """Optimal expected reward not given. I will compute cumulative regret
-                     values retroactively, using the empirical estimation of
-                     the optimal reward."""
+                """\nOptimal expected reward not given. I will compute cumulative regret
+values retroactively, using the empirical estimation of
+the optimal reward.\n"""
             )
-            self.optimal_expected_reward = None
+        self.optimal_expected_reward = optimal_expected_reward
         self._initialize_run()
 
     def _initialize_run(self):
@@ -40,6 +52,7 @@ class UCB:
             self.n_arms
         )  # Expected reward for each arm
         self.cumulative_regrets = []  # (Instantaneous) cumulative regrets
+        self.best_arm = None
 
     def _select_arm(self):
         # If any arm hasn't been pulled yet, select it
@@ -64,37 +77,32 @@ class UCB:
         self.arm_rewards[chosen_arm] += reward
         self.total_pulls += 1
 
-    def run(self, n_rounds):
-        """
-        bandit_probs: List of probabilities for each bandit's reward (Bernoulli rewards).
-        n_rounds: Number of rounds to play.
-        """
-        self._initialize_run()
+    def step(self):
+        chosen_arm = self._select_arm()
+        # Pull arm
+        reward, arm_prob = self.reward_distributions[chosen_arm].sample()
+        reward = reward.item()
+        arm_prob = arm_prob.item()
+        self._update_arm(chosen_arm, reward)
+        self.selected_arms += [chosen_arm]
+        self.observed_rewards += [reward]
+        self.pulled_arm_probs += [arm_prob]
 
-        for _ in range(n_rounds):
-            chosen_arm = self._select_arm()
-            # Pull arm
-            reward, arm_prob = self.reward_distributions[chosen_arm].sample()
-            reward = reward.item()
-            arm_prob = arm_prob.item()
-            self._update_arm(chosen_arm, reward)
-            self.selected_arms += [chosen_arm]
-            self.observed_rewards += [reward]
-            self.pulled_arm_probs += [arm_prob]
-
-        # Computation of cumulative regret
-        best_arm = self.selected_arms[-1]
-
+    def record_details(self):
         # Estimate expected rewards for each arm, and then for each chosen arm
         self.arm_expected_rewards = self.arm_rewards / self.arm_counts
         self.expected_rewards = [
             self.arm_expected_rewards[i].item() for i in self.selected_arms
         ]
 
+        # best_arm is the one with largest estimated expected reward
+        self.best_arm = np.argmax(self.arm_expected_rewards).item()
+
         if self.optimal_expected_reward is None:
             # Empirical optimal reward estimate, assuming best arm is actually best
-            self.optimal_expected_reward = self.arm_expected_rewards[best_arm]
+            self.optimal_expected_reward = self.arm_expected_rewards[self.best_arm]
 
+        # Computation of cumulative regret
         instant_regrets = self.optimal_expected_reward - self.expected_rewards
         self.cumulative_regrets = list(accumulate(instant_regrets))
         # instant_regret = self.optimal_expected_reward - reward
@@ -105,9 +113,27 @@ class UCB:
             "observed_rewards": self.observed_rewards,
             "arm_probs": self.pulled_arm_probs,  # Probabilities of pulled arms
             "cum_regrets": self.cumulative_regrets,
-            "best_arm": best_arm,  # The last chosen arm
+            # "best_arm": best_arm,  # The last chosen arm
             "arm_expected_rewards": self.arm_expected_rewards,
         }
+
+        return history
+
+    def run(self, n_rounds, fresh_start=True):
+        """Run UCB algorithm.
+
+        bandit_probs: List of probabilities for each bandit's reward (Bernoulli rewards).
+        n_rounds: Number of rounds to play.
+        fresh_start: Reset class attributes before running.
+        """
+        if fresh_start:
+            self._initialize_run()
+
+        for _ in range(n_rounds):
+            self.step()
+
+        history = self.record_details()
+
         return history
 
 
@@ -118,15 +144,16 @@ if __name__ == "__main__":
         RandomVariable(bernoulli, 0.5),
         RandomVariable(bernoulli, 0.1),
     ]
-    n_rounds = 1000
+    n_rounds = 10000
 
     ucb = UCB(reward_distributions)
     history = ucb.run(n_rounds)
 
     print("Total Reward:", sum(history["observed_rewards"]))
     print("Number of times each arm was pulled:", ucb.arm_counts)
-    print("Estimated reward for each arm:", ucb.arm_rewards / ucb.arm_counts)
+    print("Estimated expected reward for each arm:", ucb.arm_expected_rewards)
 
-    # fmt:off
-    import ipdb; ipdb.set_trace() # noqa
-    # fmt:on
+    from matplotlib.pyplot import plot, show
+
+    plot(ucb.cumulative_regrets)
+    show()

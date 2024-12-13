@@ -10,6 +10,7 @@ matplotlib = "*"
 
 [dev-packages]
 ipdb = "*"
+pretty-errors = "*"
 
 [requires]
 python_version = "3.10"

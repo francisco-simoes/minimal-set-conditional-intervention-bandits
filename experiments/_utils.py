@@ -1,8 +1,5 @@
-from scipy.stats import bernoulli
-
-
 class RandomVariable:
-    def __init__(self, distribution, *params):
+    def __init__(self, distribution, *params, **kparams):
         """
         Initialize the random variable with a specified scipy distribution.
 
@@ -12,7 +9,17 @@ class RandomVariable:
             and scale for normal).
         """
         self.distribution = distribution
-        self.params = params
+        self.rv = distribution(*params, **kparams)
+        self.domain = (
+            self._build_discrete_domain()
+            if hasattr(self.rv, "pmf")
+            else self.rv.support()
+        )
+
+    def _build_discrete_domain(self):
+        a, b = self.rv.support()
+        domain = tuple(range(a, b + 1))
+        return domain
 
     def sample(self, size=1):
         """
@@ -26,25 +33,9 @@ class RandomVariable:
         list of tuples: Each tuple contains (sampled_value, probability_of_sampled_value).
         """
         # Generate the samples
-        samples = self.distribution.rvs(*self.params, size=size)
+        samples = self.rv.rvs(size=size)
 
-        # Compute probabilities/densities for each sampled value
-        # if isinstance(samples, np.ndarray):
-        #     results = [
-        #         (
-        #             sample,
-        #             self.distribution.pmf(sample, *self.params)
-        #             if hasattr(self.distribution, "pmf")
-        #             else self.distribution.pdf(sample, *self.params),
-        #         )
-        #         for sample in samples
-        #     ]
-        # else:
-        prob = (
-            self.distribution.pmf(samples, *self.params)
-            if hasattr(self.distribution, "pmf")
-            else self.distribution.pdf(samples, *self.params)
-        )
+        prob = self.rv.pmf(samples) if hasattr(self.rv, "pmf") else self.rv.pdf(samples)
 
         return samples, prob
 
