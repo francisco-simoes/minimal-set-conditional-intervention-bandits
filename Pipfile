@@ -8,6 +8,10 @@ numpy = "*"
 scipy = "*"
 matplotlib = "*"
 tqdm = "*"
+jupyterlab = "*"
+jupyterlab-vim = "*"
+pgmpy = "*"
+pygraphviz = "*"
 
 [dev-packages]
 ipdb = "*"
