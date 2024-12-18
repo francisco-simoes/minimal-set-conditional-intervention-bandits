@@ -26,8 +26,6 @@ class ContextualUCB:
     the distribution of the reward X given the context C=c and action A=a.
     """
 
-    # NOTE: not sure yet what reward_cpd should be: maybe an array of distributions
-    # with indices [c,a].
     def __init__(
         self,
         context_distribution: RandomVariable,
