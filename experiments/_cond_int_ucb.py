@@ -4,65 +4,45 @@ import numpy as np
 from scipy.stats import bernoulli, rv_discrete
 from tqdm import tqdm
 
-from _samplers import ContextSamplerBase, RewardSamplerBase
+from _cond_int_cbn_mab import CondIntCBN_MAB
 from _ucb import UCB
 from _utils import RandomVariable
 
 
-class UncoupledContextualUCB:
-    """Run uncoupled contextual UCB on a contextual bandit problem and store results.
+class CondIntUCB:
+    """Run CondIntUCB on a conditional intervention CBN-MAB problem and store results.
 
-    The uncoupled contextual UCB algorithm simply consists of treating the (finite,
-    stochastic) contextual bandit problem as a set of bandit problems, one for each
-    context, and running UCB on each of those.
+    The CondIntUCB algorithm treats each candidate node as a contextual bandit problem,
+    thus running a contextual ucb algorithm on each, resulting in one optimal policy
+    per node, from which the best is selected. The output is thus a (node, policy) pair.
 
-    The contextual bandit problem is characterized by a context (vector) distribution
-    and a reward conditional distribution p(r|c,a) giving the probability of reward r
-    given a context c and an action a.
-
-    There will be a UCB instance for each context c (we assume discrete contexts).
-    At each iteration, a context is sampled, after which UCB(c) performs an iteration.
+    There will be a contextual UCB instance for each context c (we assume discrete
+    contexts). At each iteration, a node is selected (using UCB at the node level),
+    after which one iteration of the contextual UCB algorithm is performed.
     """
 
-    # TODO: re-do using RewardSamplerBase method to sample rewards
+    # TODO
     def __init__(
         self,
-        context_sampler: ContextSamplerBase,
-        reward_sampler: RewardSamplerBase,
-        optimal_expected_rewards: Optional[list[float]] = None,
+        mab: CondIntCBN_MAB,
     ):
-        assert isinstance(
-            context_distribution.domain, tuple
-        ), "Context domain must a tuple."
-        assert reward_cpd.ndim == 2, "reward_cpd must be 2-dim array."
-        assert reward_cpd.shape[0] == len(
-            context_distribution.domain
-        ), "First dim of reward_cpd must have as many elements as there are contexts."
-        self.context_distribution = context_distribution
-        self.n_contexts = len(self.context_distribution.domain)
-        self.ucbs = [UCB(reward_cpd[c, :]) for c in range(self.n_contexts)]
-        if optimal_expected_rewards is None:
-            print(
-                """\nOptimal expected rewards not given. I will compute cumulative regret
-values retroactively, using the empirical estimation of
-the optimal rewards.\n"""
-            )
-        self.optimal_expected_rewards = optimal_expected_rewards
-        self._initialize_run()
+        self.cont_ucbs = [
+            ContextualUCB(reward_cpd[c, :]) for c in range(self.n_contexts)
+        ]
         self._initialize_run()
 
     def _initialize_run(self):
         for i in range(len(self.ucbs)):
             self.ucbs[i]._initialize_run()
-            self.total_pulls = 0  # Total number of pulls during run
-            self.contexts = []  # Contexts observed during run
-            # A run is characterized by tuples (c_t, p(c_t), a_t, p(a_t), x_t).
-            self.sampled_contexts_probs = []  # Probability of each observed context
-            self.selected_arms = []  # Pulled arms during a run
-            self.pulled_arm_probs = []  # Probabilities of the pulled arms
-            self.observed_rewards = []  # Rewards observed during run
-            self.cumulative_regrets = []  # (Instantaneous) cumulative regrets
-            self.best_policy = None
+        self.total_pulls = 0  # Total number of pulls during run
+        self.contexts = []  # Contexts observed during run
+        # A run is characterized by tuples (c_t, p(c_t), a_t, p(a_t), x_t).
+        self.sampled_contexts_probs = []  # Probability of each observed context
+        self.selected_arms = []  # Pulled arms during a run
+        self.pulled_arm_probs = []  # Probabilities of the pulled arms
+        self.observed_rewards = []  # Rewards observed during run
+        self.cumulative_regrets = []  # (Instantaneous) cumulative regrets
+        self.best_policy = None
 
     def run(self, n_rounds, fresh_start=True):
         if fresh_start:
@@ -138,7 +118,7 @@ if __name__ == "__main__":
     # Note that optimal policy is then 0->0, 1->0, 2->1.
     n_rounds = 10000
 
-    cont_ucb = UncoupledContextualUCB(context_distribution, reward_cpd)
+    cont_ucb = ContextualUCB(context_distribution, reward_cpd)
     history = cont_ucb.run(n_rounds)
 
     print("Total Reward:", sum(history["observed_rewards"]))

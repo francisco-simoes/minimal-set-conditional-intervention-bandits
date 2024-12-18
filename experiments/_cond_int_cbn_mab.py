@@ -1,51 +1,44 @@
 from typing import Any
 
 from numpy.typing import NDArray
-# from _cbn import CausalBayesianNetwork
+from pandas import DataFrame
 from pgmpy.models import BayesianNetwork
 
+from _samplers import ContextSamplerBase, RewardSamplerBase
 
-class CondIntCBN_MAB:
+
+class CondIntCBN_MAB(RewardSamplerBase, ContextSamplerBase):
     """Encodes CBN-MAB problem for conditional interventions."""
 
-    # TODO: This class needs to contain information about:
-    #   1. the nodes that we can select from.
-    #   2. context for each node (ancestors or something maybe more sophisticated later on).
-    #   3. A reward CPD for each node, to be fed to a ContextualUCB per node.
-    #   OR:
+    # NOTE: This class needs to contain information about:
+    #   1. the nodes that we can select from
+    #   2. context for each node
     #   3. A method allowing sampling given a certain intervention on the node + context
-    #
-    #   NOTE: This seems to mean that the __init__ method should have the BN (from pgmpy)
-    #   as an argument to extract the nodes and the ancestors of each node; OR: this class
-    #   could subclass the BN class. The reward CPD should also be easy to extract from
-    #   the CBN.
+    #   4. A method allowing sampling of contexts
     def __init__(self, bn: BayesianNetwork, target: str):
         self.bn = bn
-        assert target in self.nodes, "The `target` must be one of the nodes in `cbn`."
+        assert target in self.bn.nodes, "The `target` must be one of the nodes in `bn`."
         self.target = target
-        self.candidate_nodes = self._find_candidates(bn)  # Reduce search space.
+        self.candidate_nodes = self._find_candidates()  # Reduce search space.
         # Each candidate node will have a context.
-        self.node_contexts: dict[str, list[str]] = self._find_contexts(bn)
-        # Each candidate node will have a reward CPD.
-        # self.reward_cpds: dict[str, NDArray] = #TODO
-        # NOTE: Need to:
-        # 1. use the cbn method for hard interventions to intervene for each value of each node
-        # 2. use get_state_probability(Y=1) method on intervened graph for (node, value) pair,
-        #       using evidence .. NOTE: NO!! would have to do this for every context (An(X) config).
-        #       This is too much! Instead, may be better to not use cbn after all (just bn), and
-        #       alter contextual_ucb class so that it can sample using the simulate() method of
-        #       the BN. (TODO!!!)
+        self.node_contexts: dict[str, list[str]] = self._find_contexts()
 
-    def _find_candidates(self, cbn):
-        # NOTE: For now, take all ancestors of target.
+    def _find_candidates(self):
+        # TODO: For now, take all non-trivial ancestors of target.
         # Replace this with search space reduction algo later.
-        return list(cbn._get_ancestors_of([self.target]))
+        target_ancestors = list(self.bn._get_ancestors_of([self.target]))
+        target_ancestors.remove(self.target)
+        return target_ancestors
 
-    def _find_contexts(self, cbn):
+    def _find_contexts(self):
+        node_contexts = {}
         for node in self.candidate_nodes:
-            # NOTE: for now, all ancestors of node is the context.
+            # NOTE: for now, all non-trivial ancestors of node is the context.
             # May replace later with backdoor set or ancestors that are also in An(Y).
-            self.node_contexts[node, list[cbn._get_ancestors_of([node])]]
+            node_ancestors = list(self.bn._get_ancestors_of([node]))
+            node_ancestors.remove(node)
+            node_contexts[node] = node_ancestors
+        return node_contexts
 
     def sample_reward(
         self,
@@ -65,3 +58,56 @@ class CondIntCBN_MAB:
         )
         reward_samples = list(df[self.target])
         return reward_samples
+
+    def sample_context(
+        self,
+        node,
+        n_samples: int = 1,
+        show_progress: bool = False,
+        seed: Any = None,
+    ) -> DataFrame:
+        """Sample the node's context."""
+        context_vars = self.node_contexts[node]
+        df = self.bn.simulate(
+            n_samples=n_samples,
+            seed=seed,
+            show_progress=show_progress,
+        )
+        # context_samples: NDArray = df[context_vars].values
+        context_samples: DataFrame = df[context_vars]
+        return context_samples
+
+
+# Example
+if __name__ == "__main__":
+    from pgmpy.utils import get_example_model
+
+    bn = get_example_model("asia")
+    target = "dysp"
+    mab = CondIntCBN_MAB(bn, target)
+
+    print("\n=== Testing sample_reward() method on Asia dataset: ===")
+    n_samples = 100
+    print(
+        "Fraction of samples with dysp=yes given that one does do(lung=yes)"
+        + " and observes bronc=yes:",
+        mab.sample_reward({"lung": "yes"}, {"bronc": "yes"}, n_samples=n_samples).count(
+            "yes"
+        )
+        / n_samples,
+    )
+    print(
+        "Fraction of samples with dysp=yes given that one does do(lung=no)"
+        + " and observes bronc=no:",
+        mab.sample_reward({"lung": "no"}, {"bronc": "no"}, n_samples=n_samples).count(
+            "yes"
+        )
+        / n_samples,
+    )
+
+    print("\n=== Testing sample_context() method on Asia dataset: ===")
+    n_samples = 10
+    print(
+        "Some samples of the context of the variable either:\n",
+        mab.sample_context("either", n_samples=n_samples),
+    )
