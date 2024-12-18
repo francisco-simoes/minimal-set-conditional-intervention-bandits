@@ -1,4 +1,5 @@
-from typing import Optional
+from copy import deepcopy
+from typing import Any, Callable, Optional
 
 import numpy as np
 from scipy.stats import bernoulli, rv_discrete
@@ -9,8 +10,8 @@ from _ucb import UCB
 from _utils import RandomVariable
 
 
-class UncoupledContextualUCB:
-    """Run uncoupled contextual UCB on a contextual bandit problem and store results.
+class NodeUncoupledContextualUCB:
+    """Run uncoupled contextual UCB on a contextual bandit problem associated with a node.
 
     The uncoupled contextual UCB algorithm simply consists of treating the (finite,
     stochastic) contextual bandit problem as a set of bandit problems, one for each
@@ -19,28 +20,34 @@ class UncoupledContextualUCB:
     The contextual bandit problem is characterized by a context (vector) distribution
     and a reward conditional distribution p(r|c,a) giving the probability of reward r
     given a context c and an action a.
+    Additionally, the 'node' part of this problem refers to the fact that the context
+    is dependent on the choice of a 'node', so that the ContextSamplerBase instance
+    supplied should have a method `sample_context` with `node` as an argument.
 
     There will be a UCB instance for each context c (we assume discrete contexts).
     At each iteration, a context is sampled, after which UCB(c) performs an iteration.
     """
 
-    # TODO: re-do using RewardSamplerBase method to sample rewards
+    # TODO: re-do using RewardSamplerBase and ContextSamplerBase method to sample rewards
     def __init__(
         self,
+        node: str,
+        n_contexts: int,
         context_sampler: ContextSamplerBase,
         reward_sampler: RewardSamplerBase,
         optimal_expected_rewards: Optional[list[float]] = None,
     ):
-        assert isinstance(
-            context_distribution.domain, tuple
-        ), "Context domain must a tuple."
-        assert reward_cpd.ndim == 2, "reward_cpd must be 2-dim array."
-        assert reward_cpd.shape[0] == len(
-            context_distribution.domain
-        ), "First dim of reward_cpd must have as many elements as there are contexts."
-        self.context_distribution = context_distribution
-        self.n_contexts = len(self.context_distribution.domain)
-        self.ucbs = [UCB(reward_cpd[c, :]) for c in range(self.n_contexts)]
+        self.node = node
+        self.n_contexts = n_contexts
+        self.context_sampler = context_sampler
+        self.reward_sampler = reward_sampler
+        self.ucbs = []
+        for _ in range(self.n_contexts):
+            reward_sampler_copy = deepcopy(reward_sampler)
+            # sample_reward method with fixed context
+            self.__fixed_context_decorator(reward_sampler_copy.sample_reward)
+            # UCB instance using this reward sampler
+            self.ucbs += [UCB(reward_sampler_copy)]
         if optimal_expected_rewards is None:
             print(
                 """\nOptimal expected rewards not given. I will compute cumulative regret
@@ -123,6 +130,18 @@ the optimal rewards.\n"""
 
         return history
 
+    @staticmethod
+    def __fixed_context_decorator(
+        sample_reward_func: Callable, fixed_context
+    ) -> Callable:
+        """A decorator that fixes the context for the reward sampler function."""
+
+        def wrapper(self, do: dict[str, Any], context: dict[str, Any], *args, **kwargs):
+            # Here we override the context with the fixed one
+            return sample_reward_func(self, do, fixed_context, *args, **kwargs)
+
+        return wrapper
+
 
 # Example usage
 if __name__ == "__main__":
@@ -138,7 +157,7 @@ if __name__ == "__main__":
     # Note that optimal policy is then 0->0, 1->0, 2->1.
     n_rounds = 10000
 
-    cont_ucb = UncoupledContextualUCB(context_distribution, reward_cpd)
+    cont_ucb = NodeUncoupledContextualUCB(context_distribution, reward_cpd)
     history = cont_ucb.run(n_rounds)
 
     print("Total Reward:", sum(history["observed_rewards"]))

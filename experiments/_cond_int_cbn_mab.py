@@ -1,6 +1,6 @@
 from typing import Any
 
-from numpy.typing import NDArray
+# from numpy.typing import NDArray
 from pandas import DataFrame
 from pgmpy.models import BayesianNetwork
 
