@@ -5,13 +5,14 @@ import numpy as np
 from scipy.stats import bernoulli, rv_discrete
 from tqdm import tqdm
 
+from _cond_int_cbn_mab import CondIntCBN_MAB
 from _samplers import ContextSamplerBase, RewardSamplerBase
 from _ucb import UCB
 from _utils import RandomVariable
 
 
-class NodeUncoupledContextualUCB:
-    """Run uncoupled contextual UCB on a contextual bandit problem associated with a node.
+class CondIntCBN_MABContextualUCB:
+    """Run (uncoupled) contextual UCB on a CBN-MAB problem for conditional interventions.
 
     The uncoupled contextual UCB algorithm simply consists of treating the (finite,
     stochastic) contextual bandit problem as a set of bandit problems, one for each
@@ -28,20 +29,20 @@ class NodeUncoupledContextualUCB:
     At each iteration, a context is sampled, after which UCB(c) performs an iteration.
     """
 
-    # TODO: re-do using RewardSamplerBase and ContextSamplerBase method to sample rewards
     def __init__(
         self,
         node: str,
         n_contexts: int,
-        context_sampler: ContextSamplerBase,
-        reward_sampler: RewardSamplerBase,
+        mab: CondIntCBN_MAB,
         optimal_expected_rewards: Optional[list[float]] = None,
     ):
         self.node = node
         self.n_contexts = n_contexts
-        self.context_sampler = context_sampler
-        self.reward_sampler = reward_sampler
+        # In our case, both the context and reward samplers are defined by the mab
+        self.context_sampler = mab
+        self.reward_sampler = mab
         self.ucbs = []
+        # TODO delete this decorator stuff; pass the mab down to the UCB instances
         for _ in range(self.n_contexts):
             reward_sampler_copy = deepcopy(reward_sampler)
             # sample_reward method with fixed context

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Callable, Optional
 
 # from numpy.typing import NDArray
 from pandas import DataFrame
@@ -44,6 +44,7 @@ class CondIntCBN_MAB(RewardSamplerBase, ContextSamplerBase):
         self,
         do: dict[str, Any],
         context: dict[str, Any],
+        state_to_float_converter: Optional[Callable] = None,
         n_samples=1,
         show_progress=False,
         seed=None,
@@ -57,7 +58,14 @@ class CondIntCBN_MAB(RewardSamplerBase, ContextSamplerBase):
             show_progress=show_progress,
         )
         reward_samples = list(df[self.target])
-        return reward_samples
+
+        numeric_reward_samples = []
+        if state_to_float_converter is not None:
+            for sample in reward_samples:
+                numeric_reward_samples += [state_to_float_converter(sample)]
+        else:
+            numeric_reward_samples = reward_samples
+        return numeric_reward_samples
 
     def sample_context(
         self,

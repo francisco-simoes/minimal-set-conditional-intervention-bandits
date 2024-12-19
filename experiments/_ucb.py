@@ -7,29 +7,44 @@
 # to one UCB per context.
 
 from itertools import accumulate
-from typing import Optional
+from typing import Any, Callable, Optional
 
 import numpy as np
 from scipy.stats import bernoulli
+from tqdm import tqdm
 
+from _cond_int_cbn_mab import CondIntCBN_MAB
+from _samplers import RewardSamplerBase
 # from _utils import BernoulliRV
-from _utils import RandomVariable
+from _utils import RandomVariable, rowdf_to_dict
 
 
-class UCB:
-    """Run UCB on a bandit problem and store results.
+class NodeUCB:
+    """Run UCB on a bandit problem corresponding to a (node, context) pair.
 
-    The (finite, stochastic) bandit problem is characterized
-    by a set of reward distributions, one for each action/arm.
+    This bandit problem is characterized by a chosen node, a stochastic reward sampler
+    which depends the context and chosen atomic intervention on the node,
+    and a chosen context. The reward sampler will be a method of an instance of
+    the RewardSamplerBase class.
     """
 
     def __init__(
         self,
-        reward_distributions: list[RandomVariable],
+        node: str,
+        node_states: list[Any],
+        context,
+        reward_sampler_base: RewardSamplerBase,
+        reward_to_float_converter: Optional[Callable] = None,
         optimal_expected_reward: Optional[float] = None,
     ):
-        self.reward_distributions = reward_distributions
-        self.n_arms = len(self.reward_distributions)
+        self.node = node
+        self.context = context
+        self.reward_sampler = reward_sampler_base.sample_reward
+        self.arm_names = node_states  # each arm correspond to a state/name
+        self.reward_converter = (
+            reward_to_float_converter  # Needed in case reward is not float
+        )
+        self.n_arms = len(node_states)
         if optimal_expected_reward is None:
             print(
                 """\nOptimal expected reward not given. I will compute cumulative regret
@@ -45,20 +60,24 @@ the optimal reward.\n"""
         )  # Number of times each arm has been pulled
         self.arm_rewards = np.zeros(self.n_arms)  # Sum of rewards for each arm
         self.total_pulls = 0  # Total number of pulls during run
+        self.unpulled_arms_exist = True
         self.selected_arms = []  # Pulled arms during a run
         self.observed_rewards = []  # Rewards observed during run
-        self.pulled_arm_probs = []  # Probabilities of pulled arms
         self.arm_expected_rewards = np.zeros(
             self.n_arms
         )  # Expected reward for each arm
+        # self.observed_rewards_probs = []  # Probabilities of observed rewards
         self.cumulative_regrets = []  # (Instantaneous) cumulative regrets
         self.best_arm = None
 
     def _select_arm(self):
-        # If any arm hasn't been pulled yet, select it
-        for i in range(self.n_arms):
-            if self.arm_counts[i] == 0:
-                return i
+        # If an arm hasn't been pulled yet, select it
+        if self.unpulled_arms_exist:
+            for i in range(self.n_arms):
+                if self.arm_counts[i] == 0:
+                    return i
+            # If code reaches this, no need to search for unpulled arms anymore
+            self.unpulled_arms_exist = False
 
         # Calculate UCB values for each arm
         ucb_values = np.zeros(self.n_arms)
@@ -79,14 +98,16 @@ the optimal reward.\n"""
 
     def step(self):
         chosen_arm = self._select_arm()
+        intervention = {self.node: self.arm_names[chosen_arm]}
         # Pull arm
-        reward, arm_prob = self.reward_distributions[chosen_arm].sample()
-        reward = reward.item()
-        arm_prob = arm_prob.item()
+        reward = self.reward_sampler(
+            do=intervention,
+            context=self.context,
+            state_to_float_converter=self.reward_converter,
+        )[0]
         self._update_arm(chosen_arm, reward)
         self.selected_arms += [chosen_arm]
         self.observed_rewards += [reward]
-        self.pulled_arm_probs += [arm_prob]
 
     def record_details(self):
         # Estimate expected rewards for each arm, and then for each chosen arm
@@ -105,15 +126,12 @@ the optimal reward.\n"""
         # Computation of cumulative regret
         instant_regrets = self.optimal_expected_reward - self.expected_rewards
         self.cumulative_regrets = list(accumulate(instant_regrets))
-        # instant_regret = self.optimal_expected_reward - reward
-        # self.cumulative_regrets += self.cumulative_regrets[-1] + instant_regret
 
         history = {
             "selected_arms": self.selected_arms,
             "observed_rewards": self.observed_rewards,
-            "arm_probs": self.pulled_arm_probs,  # Probabilities of pulled arms
             "cum_regrets": self.cumulative_regrets,
-            # "best_arm": best_arm,  # The last chosen arm
+            "best_arm": self.best_arm,
             "arm_expected_rewards": self.arm_expected_rewards,
         }
 
@@ -122,14 +140,13 @@ the optimal reward.\n"""
     def run(self, n_rounds, fresh_start=True):
         """Run UCB algorithm.
 
-        bandit_probs: List of probabilities for each bandit's reward (Bernoulli rewards).
         n_rounds: Number of rounds to play.
         fresh_start: Reset class attributes before running.
         """
         if fresh_start:
             self._initialize_run()
 
-        for _ in range(n_rounds):
+        for _ in tqdm(range(n_rounds)):
             self.step()
 
         history = self.record_details()
@@ -139,19 +156,44 @@ the optimal reward.\n"""
 
 # Example usage
 if __name__ == "__main__":
-    reward_distributions = [
-        RandomVariable(bernoulli, 0.7),
-        RandomVariable(bernoulli, 0.5),
-        RandomVariable(bernoulli, 0.1),
-    ]
-    n_rounds = 10000
+    from pgmpy.utils import get_example_model
 
-    ucb = UCB(reward_distributions)
+    # Test NodeUCB in Asia dataset
+    bn = get_example_model("asia")
+    target = "dysp"
+
+    def yes_is_zero_converter(s: str):
+        if s == "yes":
+            return 0
+        elif s == "no":
+            return 1
+        else:
+            raise ValueError(
+                "Reward to convert must be yes or no if one uses this converter."
+            )
+
+    mab = CondIntCBN_MAB(bn, target)
+    node = "either"
+    node_states: list[str] = mab.bn.states[node]
+    context_vars = mab.node_contexts[node]
+    contextdf = mab.bn.simulate(n_samples=1, show_progress=False)[context_vars]
+    context: dict[str, Any] = rowdf_to_dict(contextdf)
+
+    print("Context:", context)
+
+    n_rounds = 1000
+    ucb = NodeUCB(
+        node, node_states, context, mab, reward_to_float_converter=yes_is_zero_converter
+    )
     history = ucb.run(n_rounds)
 
     print("Total Reward:", sum(history["observed_rewards"]))
     print("Number of times each arm was pulled:", ucb.arm_counts)
     print("Estimated expected reward for each arm:", ucb.arm_expected_rewards)
+    print(
+        "Best arm:",
+        f"{ucb.best_arm}, that is, '{node}' = '{node_states[ucb.best_arm]}'.",
+    )
 
     from matplotlib.pyplot import plot, show
 
