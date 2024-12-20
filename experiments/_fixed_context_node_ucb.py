@@ -1,25 +1,15 @@
-# TODO: the "arm pulling" must, in our case, correspond to sampling
-# from a post-intervention dist. So, I should create another file with an SCM class
-# with a do() method creating distributions with a sample() method. These distributions
-# can be fed to this UCB class as elements of the "reward_distributions" list.
-# TODO: the "arm pulling" must, in our case, be conditional on a context.
-# We will have one UCB per context. Will create a ContextualUCB class corresopnding
-# to one UCB per context.
-
 from itertools import accumulate
 from typing import Any, Callable, Optional
 
 import numpy as np
-from scipy.stats import bernoulli
 from tqdm import tqdm
 
 from _cond_int_cbn_mab import CondIntCBN_MAB
 from _samplers import RewardSamplerBase
-# from _utils import BernoulliRV
-from _utils import RandomVariable, rowdf_to_dict
+from _utils import rowdf_to_dict
 
 
-class NodeUCB:
+class FixedContextNodeUCB:
     """Run UCB on a bandit problem corresponding to a (node, context) pair.
 
     This bandit problem is characterized by a chosen node, a stochastic reward sampler
@@ -182,7 +172,7 @@ if __name__ == "__main__":
     print("Context:", context)
 
     n_rounds = 1000
-    ucb = NodeUCB(
+    ucb = FixedContextNodeUCB(
         node, node_states, context, mab, reward_to_float_converter=yes_is_zero_converter
     )
     history = ucb.run(n_rounds)
