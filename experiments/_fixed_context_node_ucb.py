@@ -101,7 +101,8 @@ the optimal reward.\n"""
 
     def record_details(self):
         # Estimate expected rewards for each arm, and then for each chosen arm
-        self.arm_expected_rewards = self.arm_rewards / self.arm_counts
+        self.arm_expected_rewards = np.nan_to_num(self.arm_rewards / self.arm_counts)
+        # (nans from cases where self.arm_counts[i]=0 are turned into zeros)
         self.expected_rewards = [
             self.arm_expected_rewards[i].item() for i in self.selected_arms
         ]
@@ -110,7 +111,7 @@ the optimal reward.\n"""
         self.best_arm = np.argmax(self.arm_expected_rewards).item()
 
         if self.optimal_expected_reward is None:
-            # Empirical optimal reward estimate, assuming best arm is actually best
+            # Empirical optimal reward estimate, assuming best_arm is actually the best
             self.optimal_expected_reward = self.arm_expected_rewards[self.best_arm]
 
         # Computation of cumulative regret

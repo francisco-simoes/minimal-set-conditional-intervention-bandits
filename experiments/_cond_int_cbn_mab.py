@@ -1,5 +1,7 @@
 from typing import Any, Callable, Optional
 
+import numpy as np
+import pandas as pd
 # from numpy.typing import NDArray
 from pandas import DataFrame
 from pgmpy.models import BayesianNetwork
@@ -34,7 +36,7 @@ class CondIntCBN_MAB(RewardSamplerBase, ContextSamplerBase):
         node_contexts = {}
         for node in self.candidate_nodes:
             # NOTE: for now, all non-trivial ancestors of node is the context.
-            # May replace later with backdoor set or ancestors that are also in An(Y).
+            # May replace later with backdoor set or ancestors that are also in an(y).
             node_ancestors = list(self.bn._get_ancestors_of([node]))
             node_ancestors.remove(node)
             node_contexts[node] = node_ancestors
@@ -66,6 +68,25 @@ class CondIntCBN_MAB(RewardSamplerBase, ContextSamplerBase):
         else:
             numeric_reward_samples = reward_samples
         return numeric_reward_samples
+
+    # def sample_context(
+    #     self,
+    #     node,
+    #     n_samples: int = 1,
+    #     show_progress: bool = False,
+    #     seed: Any = None,
+    # ) -> DataFrame:
+    #     # NOTE: this uses uniform sampling - just for sanity checks
+    #     """Sample the node's context."""
+    #     context_vars = self.node_contexts[node]
+    #     all_var_states: dict = self.bn.states
+    #     data = {
+    #         var: np.random.choice(states, size=n_samples)
+    #         for var, states in all_var_states.items()
+    #     }
+    #     samples = pd.DataFrame(data)
+    #     context_samples: DataFrame = samples[context_vars]
+    #     return context_samples
 
     def sample_context(
         self,

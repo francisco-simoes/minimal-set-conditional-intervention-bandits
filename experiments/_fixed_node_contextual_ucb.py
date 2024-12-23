@@ -41,7 +41,7 @@ class FixedNodeContextualUCB:
     ):
         self.node = node
         self.mab = mab
-        self.reward_to_flowt_converter = reward_to_float_converter
+        self.reward_to_float_converter = reward_to_float_converter
         # In our case, both the context and reward samplers are defined by the mab
         self.context_sampler: Callable = self.mab.sample_context
         self.reward_sampler: Callable = self.mab.sample_reward
@@ -64,7 +64,7 @@ class FixedNodeContextualUCB:
                     node_states,
                     context,
                     self.mab,
-                    reward_to_float_converter=reward_to_float_converter,
+                    reward_to_float_converter=self.reward_to_float_converter,
                 )
             ]
         if optimal_expected_rewards is None:
@@ -87,31 +87,28 @@ the optimal rewards.\n"""
         self.cumulative_regrets = []  # (Instantaneous) cumulative regrets
         self.best_policy: dict[Any, Any] = None
 
-    def run(self, n_rounds, fresh_start=True):
-        if fresh_start:
-            self._initialize_run()
+    def _step(self):
+        # Sample context for this round
+        context_df = self.context_sampler(self.node)
+        context: dict[str, Any] = rowdf_to_dict(context_df)
+        # context: list[Any] = tuple((context_dict[var] for var in self.context_vars))
+        context_index: int = self.context_states.index(context)
+        # One UCB step, for the UCB for this context
+        ucb = self.ucbs[context_index]
+        ucb.step()
+        # Update tracking class's attributes
+        self.total_pulls += 1
+        self.contexts_idxs += [context_index]
+        self.selected_arms += [ucb.selected_arms[-1]]
+        self.observed_rewards += [ucb.observed_rewards[-1]]
 
-        for _ in tqdm(range(n_rounds)):
-            # Sample context for this round
-            context_df = self.context_sampler(self.node)
-            context: dict[str, Any] = rowdf_to_dict(context_df)
-            # context: list[Any] = tuple((context_dict[var] for var in self.context_vars))
-            context_index: int = self.context_states.index(context)
-            # One UCB step, for the UCB for this context
-            ucb = self.ucbs[context_index]
-            ucb.step()
-            # Update tracking class's attributes
-            self.total_pulls += 1
-            self.contexts_idxs += [context_index]
-            self.selected_arms += [ucb.selected_arms[-1]]
-            self.observed_rewards += [ucb.observed_rewards[-1]]
-
+    def record_details(self):
         # Record run details into UCB instances' attributes
         for ucb in self.ucbs:
             ucb.record_details()
 
         # Compute cumulative regret(s)
-        for i in range(n_rounds):
+        for i in range(self.total_pulls):
             context_index = self.contexts_idxs[i]
             ucb = self.ucbs[context_index]
             optimal_arm = ucb.best_arm  # Each context has a best arm
@@ -140,6 +137,17 @@ the optimal rewards.\n"""
             "cum_regrets": self.cumulative_regrets,
             "best_policy": self.best_policy,
         }
+
+        return history
+
+    def run(self, n_rounds, fresh_start=True):
+        if fresh_start:
+            self._initialize_run()
+
+        for _ in tqdm(range(n_rounds)):
+            self._step()
+
+        history = self.record_details()
 
         return history
 
@@ -191,7 +199,7 @@ if __name__ == "__main__":
     mab = CondIntCBN_MAB(bn, target)
     node = "either"
 
-    n_rounds = 5000
+    n_rounds = 1000
     contextual_ucb = FixedNodeContextualUCB(
         node, mab, reward_to_float_converter=yes_is_zero_converter
     )
@@ -209,7 +217,3 @@ if __name__ == "__main__":
 
     plot(contextual_ucb.cumulative_regrets)
     show()
-
-    # fmt:off
-    import ipdb; ipdb.set_trace() # noqa
-    # fmt:on
