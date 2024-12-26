@@ -45,9 +45,10 @@ def cbn_from_railway_data(
     for node in cbn.nodes:
         parents: list[str] = cbn.get_parents(node)
         if len(parents) == 0:
-            node_cpd_array = _normalized_discrete_gamma(
-                k + 1, theta + 1, x_card=max_delay
-            )  # Larger shape and scale parameters for root nodes
+            # node_cpd_array = _normalized_discrete_gamma(
+            #     k + 1, theta + 1, x_card=max_delay
+            # )  # Larger shape and scale parameters for root nodes
+            node_cpd_array = _normalized_discrete_gamma(k, theta, x_card=max_delay)
             node_cpd_table = node_cpd_array.reshape(-1, 1)
             evidence = []
             evidence_card = []
