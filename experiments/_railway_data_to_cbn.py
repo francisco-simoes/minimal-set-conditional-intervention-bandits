@@ -11,7 +11,7 @@ def cbn_from_railway_data(
     buffer: float = 3,
     k: float = 1,
     theta: float = 1,
-    max_delay: int = 60,
+    max_delay: int = 30,
 ) -> BayesianNetwork:
     df = pd.read_csv(path_csv, header=0, sep=";")
     # df=pd.read_csv('data/scm.csv',header=0,sep=';')
@@ -45,7 +45,9 @@ def cbn_from_railway_data(
     for node in cbn.nodes:
         parents: list[str] = cbn.get_parents(node)
         if len(parents) == 0:
-            node_cpd_array = _normalized_discrete_gamma(k, theta, x_card=max_delay)
+            node_cpd_array = _normalized_discrete_gamma(
+                k + 1, theta + 1, x_card=max_delay
+            )  # Larger shape and scale parameters for root nodes
             node_cpd_table = node_cpd_array.reshape(-1, 1)
             evidence = []
             evidence_card = []
@@ -96,6 +98,26 @@ def cbn_from_railway_data(
         )
         cbn.add_cpds(cpd)
 
+    # Reward node
+    leaves: list[str] = cbn.get_leaves()
+    # There will be one edge from each childless node
+    cbn.add_node("Y")
+    cbn.add_edges_from([leaf, "Y"] for leaf in leaves)
+    # Add CPD for reward node
+    reward_cpd_array = np.zeros((max_delay,) * 5)
+    for parent_vals in np.ndindex(*reward_cpd_array.shape[1:]):
+        y = round(np.mean(parent_vals))
+        reward_cpd_array[(y, *parent_vals)] = 1.0
+    reward_cpd_table = reward_cpd_array.reshape(max_delay, -1)
+    cpd = TabularCPD(
+        variable="Y",
+        variable_card=max_delay,
+        values=reward_cpd_table,
+        evidence=leaves,
+        evidence_card=[max_delay] * len(leaves),
+    )
+    cbn.add_cpds(cpd)
+
     return cbn
 
 
@@ -127,13 +149,20 @@ def _normalized_discrete_gamma(k, theta, x_card, shift=0):
 
 
 if __name__ == "__main__":
-    cbn = cbn_from_railway_data("./data/railway_data.csv")
+    cbn = cbn_from_railway_data("./data/railway_data.csv", buffer=3)
 
     from PIL import Image
 
     graph = cbn.to_graphviz()
     graph.draw("railway_graph.png", prog="dot")
     Image.open("railway_graph.png").show()
+
+    df = cbn.simulate()
+    print(df[["1100E_Ehv_V_44:00", "3500E_Ehv_A_41:00", "3500E_Ehv_V_47:00"]])
+
+    # fmt:off
+    import ipdb; ipdb.set_trace() # noqa
+    # fmt:on
 
 # TEST for way I'm mapping array to table
 # def map_index_to_number(n):
