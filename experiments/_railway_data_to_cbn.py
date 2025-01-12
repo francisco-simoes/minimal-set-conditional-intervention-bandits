@@ -11,7 +11,7 @@ def cbn_from_railway_data(
     buffer: float = 3,
     k: float = 1,
     theta: float = 1,
-    max_delay: int = 30,
+    max_delay: int = 20,
 ) -> BayesianNetwork:
     df = pd.read_csv(path_csv, header=0, sep=";")
     # df=pd.read_csv('data/scm.csv',header=0,sep=';')
@@ -105,7 +105,7 @@ def cbn_from_railway_data(
     cbn.add_node("Y")
     cbn.add_edges_from([leaf, "Y"] for leaf in leaves)
     # Add CPD for reward node
-    reward_cpd_array = np.zeros((max_delay,) * 5)
+    reward_cpd_array = np.zeros((max_delay,) * (1 + len(leaves)))
     for parent_vals in np.ndindex(*reward_cpd_array.shape[1:]):
         y = round(np.mean(parent_vals))
         reward_cpd_array[(y, *parent_vals)] = 1.0
@@ -150,7 +150,8 @@ def _normalized_discrete_gamma(k, theta, x_card, shift=0):
 
 
 if __name__ == "__main__":
-    cbn = cbn_from_railway_data("./data/railway_data.csv", buffer=3)
+    cbn = cbn_from_railway_data("./data/railway_medium_data.csv", buffer=3)
+    # cbn = cbn_from_railway_data("./data/railway_large_data.csv", buffer=3)
 
     from PIL import Image
 
@@ -159,11 +160,12 @@ if __name__ == "__main__":
     Image.open("railway_graph.png").show()
 
     df = cbn.simulate()
-    print(df[["1100E_Ehv_V_44:00", "3500E_Ehv_A_41:00", "3500E_Ehv_V_47:00"]])
 
     # fmt:off
     import ipdb; ipdb.set_trace() # noqa
     # fmt:on
+
+    print(df[["1100E_Ehv_V_44:00", "3500E_Ehv_A_41:00", "3500E_Ehv_V_47:00"]])
 
 # TEST for way I'm mapping array to table
 # def map_index_to_number(n):
