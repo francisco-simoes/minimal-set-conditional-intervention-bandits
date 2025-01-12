@@ -1,8 +1,5 @@
 from typing import Any, Callable, Optional
 
-import numpy as np
-import pandas as pd
-from networkx import DiGraph
 # from numpy.typing import NDArray
 from pandas import DataFrame
 from pgmpy.models import BayesianNetwork
@@ -167,6 +164,6 @@ if __name__ == "__main__":
     )
 
     print("\n=== Testing using SPLIT for search space reduction on Asia dataset: ===")
-    S = mab.candidate_nodes
-    print(f"Candidate nodes: {set(S)}")
+    mGISS = mab.candidate_nodes
+    print(f"Candidate nodes: {set(mGISS)}")
     print("Expected: {'either', 'bronc', 'smoke'}")

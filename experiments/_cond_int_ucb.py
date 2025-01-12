@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 from _cond_int_cbn_mab import CondIntCBN_MAB
 from _fixed_node_contextual_ucb import FixedNodeContextualUCB
+from _split_algo import SPLIT_on_target
 from _utils import rowdf_to_dict
 
 
@@ -181,23 +182,35 @@ if __name__ == "__main__":
                 "Reward to convert must be yes or no if one uses this converter."
             )
 
-    mab = CondIntCBN_MAB(bn, target="dysp")
-    cond_ucb = CondIntUCB(mab, reward_to_float_converter=yes_is_zero_converter)
+    mab_bf = CondIntCBN_MAB(bn, target="dysp")
+    mab_mgiss = CondIntCBN_MAB(
+        bn, target="dysp", search_space_reduction_func=SPLIT_on_target
+    )
+    cond_ucb_bf = CondIntUCB(mab_bf, reward_to_float_converter=yes_is_zero_converter)
+    cond_ucb_mgiss = CondIntUCB(
+        mab_mgiss, reward_to_float_converter=yes_is_zero_converter
+    )
 
-    n_rounds = 5000
-    history = cond_ucb.run(n_rounds)
+    n_rounds = 1000
+    history_bf = cond_ucb_bf.run(n_rounds)
+    print("Total Reward:", sum(history_bf["observed_rewards"]))
+    print("Cumulative Regret:", history_bf["cumulative_regrets"][-1])
 
-    print("Total Reward:", sum(history["observed_rewards"]))
-    print("Cumulative Regret:", history["cumulative_regrets"][-1])
+    history_mgiss = cond_ucb_mgiss.run(n_rounds)
+    print("Total Reward:", sum(history_mgiss["observed_rewards"]))
+    print("Cumulative Regret:", history_mgiss["cumulative_regrets"][-1])
 
-    from matplotlib.pyplot import plot, show
+    from matplotlib.pyplot import legend, plot, show, title
 
-    plot(history["cumulative_regrets"])
+    title("Cumulative Regret Curves - Lung Cancer Dataset")
+    plot(history_bf["cumulative_regrets"], label="Brute-force")
+    plot(history_mgiss["cumulative_regrets"], label="mGISS")
+    legend()
     try:
         show()
     except RuntimeError as e:  # Avoid backend-related errors
         print(e)
 
-    # fmt:off
-    import ipdb; ipdb.set_trace() # noqa
-    # fmt:on
+    # # fmt:off
+    # import ipdb; ipdb.set_trace() # noqa
+    # # fmt:on
