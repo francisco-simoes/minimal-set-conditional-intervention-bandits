@@ -1,5 +1,5 @@
 import copy
-from typing import Set
+from typing import Any, Set
 
 import networkx as nx
 from pgmpy.models import BayesianNetwork
@@ -36,7 +36,7 @@ def SPLIT(G: nx.DiGraph, U: Set) -> Set:
     return S
 
 
-def SPLIT_on_target(bn: BayesianNetwork, target: str):
+def SPLIT_on_target(bn: BayesianNetwork, target: Any):
     """Apply SPLIT on (graph of bn, Pa(target))."""
     Pa_Y = bn.predecessors(target)
     digraph: nx.DiGraph = bn.to_directed()
