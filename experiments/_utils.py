@@ -45,18 +45,39 @@ def rowdf_to_dict(df):
     return df.iloc[0].to_dict()
 
 
-def get_node_with_most_ancestors(dag: nx.DiGraph) -> tuple[Any, int]:
+def get_node_with_most_ancestors(
+    dag: nx.DiGraph, no_single_children: False
+) -> tuple[Any, int]:
+    """Find node with most ancestors.
+
+    If no_single_children is True, then find the 2-parent node with most ancestors.
+    """
+    # Update the maximum if necessary
     max_ancestors_leaf = None
     max_ancestors_count = 0
 
-    leaf_nodes = get_dag_leaves(dag)
-    for leaf in leaf_nodes:
+    if no_single_children:
+        # Need to consider all nodes
+        candidate_nodes = dag.nodes
+    else:
+        # Most-ancestor node will be within leaves
+        candidate_nodes = get_dag_leaves(dag)
+    for node in candidate_nodes:
+
+        # Test whether it is single child, if no_single_children=True
+        if no_single_children:
+            n_parents = dag.in_degree(node)
+            if n_parents == 1:
+                continue  # skip rest
+
         # Get ancestors of the leaf node
-        ancestors: set = nx.ancestors(dag, leaf)
+        ancestors: set = nx.ancestors(dag, node)
         # Count the number of ancestors
         count = len(ancestors)
+
         # Update the maximum if necessary
         if count > max_ancestors_count:
             max_ancestors_count = count
-            max_ancestors_leaf = leaf
+            max_ancestors_leaf = node
+
     return max_ancestors_leaf, max_ancestors_count

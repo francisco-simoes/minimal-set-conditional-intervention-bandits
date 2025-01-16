@@ -30,20 +30,28 @@ class CondIntUCB:
 
         # Initialize FixedNodeContextualUCB instances for each node
         self.candidate_nodes = list(self.mab.candidate_nodes)
-        self.fixed_node_ucbs: dict[Any, FixedNodeContextualUCB] = {
-            node: FixedNodeContextualUCB(node, mab, reward_to_float_converter)
-            for node in self.candidate_nodes
-        }
+
+        self.fixed_node_ucbs: dict[Any, FixedNodeContextualUCB] = {}
+        for node in tqdm(self.candidate_nodes):
+            print(node)
+            print(mab.bn.states[node])
+            self.fixed_node_ucbs[node] = FixedNodeContextualUCB(
+                node, mab, reward_to_float_converter
+            )
+        # self.fixed_node_ucbs: dict[Any, FixedNodeContextualUCB] = {
+        #     node: FixedNodeContextualUCB(node, mab, reward_to_float_converter)
+        #     for node in tqdm(self.candidate_nodes)
+        # }
 
         self.n_nodes = len(self.candidate_nodes)
 
-        if optimal_expected_reward is None:
-            print(
-                """
-Optimal expected rewards not given. I will compute cumulative regret values retroactively,
-using the empirical estimation of the optimal rewards.
-"""
-            )
+        #         if optimal_expected_reward is None:
+        #             print(
+        #                 """
+        # Optimal expected rewards not given. I will compute cumulative regret values retroactively,
+        # using the empirical estimation of the optimal rewards.
+        # """
+        #             )
         self.optimal_expected_reward = optimal_expected_reward
         self._initialize_run()
 

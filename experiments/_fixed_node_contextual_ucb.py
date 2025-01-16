@@ -40,15 +40,15 @@ class FixedNodeContextualUCB:
         optimal_expected_rewards: Optional[list[float]] = None,
     ):
         self.node = node
-        self.mab = mab
+        self.bn_states: dict = mab.bn.states
         self.reward_to_float_converter = reward_to_float_converter
         # In our case, both the context and reward samplers are defined by the mab
-        self.context_sampler: Callable = self.mab.sample_context
-        self.reward_sampler: Callable = self.mab.sample_reward
+        self.context_sampler: Callable = mab.sample_context
+        self.reward_sampler: Callable = mab.sample_reward
         # Let's get all contexts (a.k.a. context states) for this node
-        self.context_vars: list[Any] = self.mab.node_contexts[self.node]
+        self.context_vars: list[Any] = mab.node_contexts[self.node]
         # self.context_states = list(
-        #     cartesian_product(*[self.mab.bn.states[var] for var in self.context_vars])
+        #     cartesian_product(*[mab.bn.states[var] for var in self.context_vars])
         # )
 
         # Construct list of all contexts (dictionaries)
@@ -57,22 +57,22 @@ class FixedNodeContextualUCB:
         self.n_contexts = len(self.context_states)
         self.ucbs: list[FixedContextNodeUCB] = []
         for context in self.context_states:
-            node_states = self.mab.bn.states[self.node]
+            node_states = mab.bn.states[self.node]
             self.ucbs += [
                 FixedContextNodeUCB(
                     self.node,
                     node_states,
                     context,
-                    self.mab,
+                    mab,
                     reward_to_float_converter=self.reward_to_float_converter,
                 )
             ]
-        if optimal_expected_rewards is None:
-            print(
-                """\nOptimal expected rewards not given. I will compute cumulative regret
-values retroactively, using the empirical estimation of
-the optimal rewards.\n"""
-            )
+        #         if optimal_expected_rewards is None:
+        #             print(
+        #                 """\nOptimal expected rewards not given. I will compute cumulative regret
+        # values retroactively, using the empirical estimation of
+        # the optimal rewards.\n"""
+        #             )
         self.optimal_expected_rewards = optimal_expected_rewards
         self._initialize_run()
 
@@ -153,7 +153,7 @@ the optimal rewards.\n"""
 
     def _construct_context_states(self):
         state_lists: list[list] = [
-            self.mab.bn.states[var] for var in self.context_vars
+            self.bn_states[var] for var in self.context_vars
         ]  # Each element is the list of all possible states for var
         context_states_lsts: list[tuple] = list(
             cartesian_product(*state_lists)

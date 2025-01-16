@@ -21,6 +21,7 @@ class CondIntCBN_MAB(RewardSamplerBase, ContextSamplerBase):
         bn: BayesianNetwork,
         target: str,
         search_space_reduction_func: Optional[Callable] = None,
+        verbose_search_space: bool = False,
         find_contexts_func: Optional[Callable] = None,
     ):
         """search_space_reduction_func must take a BayesianNetwork instance and the target
@@ -32,6 +33,7 @@ class CondIntCBN_MAB(RewardSamplerBase, ContextSamplerBase):
         self._find_contexts_func = find_contexts_func
         self._search_space_reduction_func = search_space_reduction_func
 
+        self.verbose_search_space = verbose_search_space
         self.bn = bn
         assert target in self.bn.nodes, "The `target` must be one of the nodes in `bn`."
         self.target = target
@@ -42,11 +44,13 @@ class CondIntCBN_MAB(RewardSamplerBase, ContextSamplerBase):
     def _find_candidates(self):
         if self._search_space_reduction_func is None:
             # Default: All non-trivial ancestors of target.
-            target_ancestors = list(self.bn._get_ancestors_of([self.target]))
-            target_ancestors.remove(self.target)
-            return target_ancestors
+            candidates = list(self.bn._get_ancestors_of([self.target]))
+            candidates.remove(self.target)
         else:
-            return list(self._search_space_reduction_func(self.bn, self.target))
+            candidates = list(self._search_space_reduction_func(self.bn, self.target))
+        if self.verbose_search_space:
+            print(f"Search Space Nodes: {candidates}")
+        return candidates
 
     def _find_contexts(self):
         "Returns a dictionary with key-value pairs node: conditioning set."

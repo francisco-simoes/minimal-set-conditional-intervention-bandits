@@ -35,12 +35,12 @@ class FixedContextNodeUCB:
             reward_to_float_converter  # Needed in case reward is not float
         )
         self.n_arms = len(node_states)
-        if optimal_expected_reward is None:
-            print(
-                """\nOptimal expected reward not given. I will compute cumulative regret
-values retroactively, using the empirical estimation of
-the optimal reward.\n"""
-            )
+        #         if optimal_expected_reward is None:
+        #             print(
+        #                 """\nOptimal expected reward not given. I will compute cumulative regret
+        # values retroactively, using the empirical estimation of
+        # the optimal reward.\n"""
+        #             )
         self.optimal_expected_reward = optimal_expected_reward
         self._initialize_run()
 
