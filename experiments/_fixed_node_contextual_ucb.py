@@ -37,7 +37,7 @@ class FixedNodeContextualUCB:
         node: str,
         mab: CondIntCBN_MAB,
         reward_to_float_converter: Optional[Callable] = None,
-        optimal_expected_rewards: Optional[list[float]] = None,
+        # optimal_expected_rewards: Optional[list[float]] = None,
     ):
         self.node = node
         self.bn_states: dict = mab.bn.states
@@ -73,7 +73,7 @@ class FixedNodeContextualUCB:
         # values retroactively, using the empirical estimation of
         # the optimal rewards.\n"""
         #             )
-        self.optimal_expected_rewards = optimal_expected_rewards
+        # self.optimal_expected_rewards = optimal_expected_rewards
         self._initialize_run()
 
     def _initialize_run(self):
@@ -84,6 +84,7 @@ class FixedNodeContextualUCB:
         # A run is characterized by tuples (c_t, a_t, x_t).
         self.selected_arms = []  # Pulled arms during a run
         self.observed_rewards = []  # Rewards observed during run
+        # self.optimal_expected_reward = None
         self.cumulative_regrets = []  # (Instantaneous) cumulative regrets
         self.best_policy: dict[Any, Any] = None
 

@@ -81,3 +81,7 @@ def get_node_with_most_ancestors(
             max_ancestors_leaf = node
 
     return max_ancestors_leaf, max_ancestors_count
+
+
+def most_common_list_element(lst):
+    return max(lst, key=lst.count)

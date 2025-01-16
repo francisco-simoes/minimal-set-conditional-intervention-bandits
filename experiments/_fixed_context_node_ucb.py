@@ -25,7 +25,7 @@ class FixedContextNodeUCB:
         context,
         reward_sampler_base: RewardSamplerBase,
         reward_to_float_converter: Optional[Callable] = None,
-        optimal_expected_reward: Optional[float] = None,
+        # optimal_expected_reward: Optional[float] = None,
     ):
         self.node = node
         self.context = context
@@ -41,7 +41,7 @@ class FixedContextNodeUCB:
         # values retroactively, using the empirical estimation of
         # the optimal reward.\n"""
         #             )
-        self.optimal_expected_reward = optimal_expected_reward
+        # self.optimal_expected_reward = optimal_expected_reward
         self._initialize_run()
 
     def _initialize_run(self):
@@ -57,6 +57,7 @@ class FixedContextNodeUCB:
             self.n_arms
         )  # Expected reward for each arm
         # self.observed_rewards_probs = []  # Probabilities of observed rewards
+        self.optimal_expected_reward = None
         self.cumulative_regrets = []  # (Instantaneous) cumulative regrets
         self.best_arm = None
 

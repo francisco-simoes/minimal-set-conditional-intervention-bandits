@@ -22,7 +22,7 @@ class CondIntUCB:
         self,
         mab: CondIntCBN_MAB,
         reward_to_float_converter: Optional[Callable] = None,
-        optimal_expected_reward: Optional[list[float]] = None,
+        # optimal_expected_reward: Optional[list[float]] = None,
     ):
         self.mab = mab
         self.target = mab.target
@@ -32,9 +32,10 @@ class CondIntUCB:
         self.candidate_nodes = list(self.mab.candidate_nodes)
 
         self.fixed_node_ucbs: dict[Any, FixedNodeContextualUCB] = {}
-        for node in tqdm(self.candidate_nodes):
-            print(node)
-            print(mab.bn.states[node])
+        for node in self.candidate_nodes:
+            # for node in tqdm(self.candidate_nodes):
+            # print(node)
+            # print(mab.bn.states[node])
             self.fixed_node_ucbs[node] = FixedNodeContextualUCB(
                 node, mab, reward_to_float_converter
             )
@@ -52,7 +53,7 @@ class CondIntUCB:
         # using the empirical estimation of the optimal rewards.
         # """
         #             )
-        self.optimal_expected_reward = optimal_expected_reward
+        # self.optimal_expected_reward = optimal_expected_reward
         self._initialize_run()
 
     def _initialize_run(self):
@@ -66,7 +67,9 @@ class CondIntUCB:
         self.selected_nodes = []
         self.selected_nodes_idxs = []
         # self.selected_arms = []  # Pulled arms during run
+        self.optimal_expected_reward = None
         self.observed_rewards = []
+        self.instant_regrets = []
         self.cumulative_regrets = []
         self.best_node_and_policy: tuple[
             Any, dict[Any, Any]
@@ -148,12 +151,16 @@ class CondIntUCB:
         #     chosen_node_index = self.selected_nodes_idxs[i]
         #     chosen_node = self.candidate_nodes[chosen_node_index]
         #     contextual_ucb = self.fixed_node_ucbs[chosen_node]
-        instant_regrets = self.optimal_expected_reward - self.expected_rewards
-        self.cumulative_regrets = list(accumulate(instant_regrets))
+        self.instant_regrets = self.optimal_expected_reward - self.expected_rewards
+        assert np.all(
+            self.instant_regrets >= -0.001
+        ), "Instant regret should never be negative."
+        self.cumulative_regrets = list(accumulate(self.instant_regrets))
 
         history = {
             "selected_nodes": self.selected_nodes,
             "observed_rewards": self.observed_rewards,
+            "instant_regrets": self.instant_regrets,
             "cumulative_regrets": self.cumulative_regrets,
             "best_node_and_policy": self.best_node_and_policy,
             "node_expected_rewards": self.node_expected_rewards,
