@@ -27,16 +27,16 @@ DATASETS_TARGETS_DCT = {
 }
 
 # # Uncomment to check that chosen targets are indeed nodes with most ancestors
-# # (and without a single parent)
+# # (and with more than one parent)
 # for name, target in DATASETS_TARGETS_DCT.items():
 #     bn = get_example_model(name)
 #     chosen = get_node_with_most_ancestors(bn.to_directed(), no_single_children=True)
 #     print(name, chosen, target)
 
-N_RUNS = 100  # graphs will average over the N_RUNS runs.
-# N_RUNS = 2  # graphs will average over the N_RUNS runs.
+# N_RUNS = 100  # graphs will average over the N_RUNS runs.
+N_RUNS = 2  # graphs will average over the N_RUNS runs.
 # N_ROUNDS = 1000  # number of rounds in each run
-N_ROUNDS = 100  # number of rounds in each run
+N_ROUNDS = 2  # number of rounds in each run
 
 
 def generate_reward_converter(bn, target):
@@ -113,9 +113,6 @@ if __name__ == "__main__":
         averaged_cum_regrets_mgiss = np.mean(cum_regrets_array_mgiss, axis=0)
 
         # TODO best arm selection prob curves
-        # fmt:off
-        import ipdb; ipdb.set_trace() # noqa
-        # fmt:on
 
         bf_sel_nodes: NDArray = np.array(
             [history["selected_nodes"] for history in histories_bf]
@@ -139,39 +136,79 @@ if __name__ == "__main__":
             axis=0
         )  # Fraction of the N_RUNS where the best arm was chosen, for each index
 
-        from matplotlib.pyplot import legend, plot, show, title
+        import pickle
 
-        title(
-            f"Cumulative Regret Curves - {name} Dataset ({len(bn.nodes)} nodes) with target '{target}'"  # noqa
+        import matplotlib.pyplot as plt
+
+        # Set a global style for consistency and better aesthetics
+        plt.rcParams.update(
+            {
+                "font.size": 10,
+                "axes.titlesize": 10,  # Title font size
+                "axes.labelsize": 9,  # Label font size
+                "legend.fontsize": 8,  # Legend font size
+                "lines.linewidth": 1.5,
+            }
         )
-        plot(
+
+        # Create a figure with two subplots (1 row, 2 columns)
+        fig, axs = plt.subplots(2, 1, figsize=(4, 6))  # Adjust figure size as needed
+        fig.suptitle(f"{name} dataset ({len(bn.nodes)} nodes) with target '{target}'")
+
+        # First subplot: Cumulative Regret Curves
+        # axs[0].set_title(
+        #     f"Cumulative Regret Curves - {name} Dataset ({len(bn.nodes)} nodes) with target '{target}'"
+        # )
+        axs[0].plot(
             averaged_cum_regrets_bf,
             label=f"Brute-force ({n_nodes_bf} nodes)",
+            color="red",
         )
-        plot(
+        axs[0].plot(
             averaged_cum_regrets_mgiss,
             label=f"mGISS (fraction: {mGISS_fraction})",
+            color="darkblue",
         )
-        legend()
-        try:
-            show()
-        except RuntimeError as e:  # Avoid backend-related errors
-            print(e)
+        # axs[0].legend()
+        # axs[0].set_xlabel("Rounds")
+        axs[0].set_ylabel("Cumulative Regret")
+        axs[0].tick_params(axis="x", labelbottom=False)  # Hide x-axis tick labels
+        axs[0].spines["top"].set_visible(False)
+        axs[0].spines["right"].set_visible(False)
 
-        title(
-            f"Optimal Arm Selection Probability - {name} Dataset ({len(bn.nodes)} nodes) with target '{target}'"  # noqa
-        )
-        plot(
+        # Second subplot: Optimal Arm Selection Probability
+        # axs[1].set_title(
+        #     f"Optimal Arm Selection Probability - {name} Dataset ({len(bn.nodes)} nodes) with target '{target}'"
+        # )
+        axs[1].plot(
             bf_probs_best_arm,
             label=f"Brute-force ({n_nodes_bf} nodes)",
+            color="red",
         )
-        plot(
+        axs[1].plot(
             mgiss_probs_best_arm,
             label=f"mGISS (fraction: {mGISS_fraction})",
+            color="darkblue",
         )
-        legend()
+        axs[1].legend(frameon=False, loc="lower right")
+        axs[1].set_xlabel("Rounds")
+        axs[1].set_ylabel("Probability of Best Arm")
+        axs[1].spines["top"].set_visible(False)
+        axs[1].spines["right"].set_visible(False)
+
+        # Adjust layout and spacing
+        plt.tight_layout()
+        fig.subplots_adjust(wspace=0.3)  # space between supplots
+
+        # Save fig
+        with open(  # Save Figure object for last minute changes
+            f"./Images/ucb_results_{name}_{N_ROUNDS}runs_{N_ROUNDS}rounds.pkl", "wb"
+        ) as handle:
+            pickle.dump(fig, handle)
+        plt.savefig(f"./Images/ucb_results_{name}_{N_ROUNDS}runs_{N_ROUNDS}rounds.png")
+
         try:
-            show()
+            plt.show()
         except RuntimeError as e:  # Avoid backend-related errors
             print(e)
 
@@ -181,6 +218,3 @@ if __name__ == "__main__":
         # del cond_ucb_bf
         # del mab_mgiss
         # del cond_ucb_mgiss
-        # # fmt:off
-        # import ipdb; ipdb.set_trace() # noqa
-        # # fmt:on

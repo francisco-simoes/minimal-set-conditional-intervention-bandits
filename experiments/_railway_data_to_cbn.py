@@ -156,8 +156,8 @@ if __name__ == "__main__":
     from PIL import Image
 
     graph = cbn.to_graphviz()
-    graph.draw("Pictures/railway_graph.png", prog="dot")
-    Image.open("Pictures/railway_graph.png").show()
+    graph.draw("Images/railway_graph.png", prog="dot")
+    Image.open("Images/railway_graph.png").show()
 
     df = cbn.simulate()
 
