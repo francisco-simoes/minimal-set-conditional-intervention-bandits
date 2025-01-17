@@ -14,9 +14,11 @@ from _utils import get_node_with_most_ancestors, most_common_list_element
 logger.setLevel(logging.ERROR)  # No warnings from pgmpy, only errors
 
 DATASETS_TARGETS_DCT = {
-    # "asia": "dysp",
-    # "cancer": "Cancer",
+    # Smaller:
+    "asia": "dysp",
+    "cancer": "Cancer",
     "sachs": "Akt",
+    # Larger:
     # "survey": "T",  # categorical
     # "alarm": "BP",
     # "barley": "protein",  # too big
