@@ -12,6 +12,7 @@ jupyterlab = "*"
 jupyterlab-vim = "*"
 pgmpy = "*"
 pygraphviz = "*"
+dill = "*"
 
 [dev-packages]
 ipdb = "*"
