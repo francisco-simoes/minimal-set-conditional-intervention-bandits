@@ -29,7 +29,7 @@ DATASETS_TARGETS_DCT = {
 }
 
 # # Uncomment to check that chosen targets are indeed nodes with most ancestors
-# # (and with more than one parent)
+# # (and with more than one parent), except for the cancer model.
 # for name, target in DATASETS_TARGETS_DCT.items():
 #     bn = get_example_model(name)
 #     chosen = get_node_with_most_ancestors(bn.to_directed(), no_single_children=True)
@@ -212,10 +212,10 @@ if __name__ == "__main__":
             pickle.dump(fig, handle)
         plt.savefig(f"./Images/ucb_results_{name}_{N_RUNS}runs_{N_ROUNDS}rounds.png")
 
-        try:
-            plt.show()
-        except RuntimeError as e:  # Avoid backend-related errors
-            print(e)
+        # try:
+        #     plt.show()
+        # except RuntimeError as e:  # Avoid backend-related errors
+        #     print(e)
 
         # # Free up memory
         # del bn
