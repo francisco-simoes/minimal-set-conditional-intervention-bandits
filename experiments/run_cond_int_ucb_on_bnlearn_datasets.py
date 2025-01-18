@@ -39,9 +39,9 @@ DATASETS_TARGETS_DCT = {
 #     chosen = get_node_with_most_ancestors(bn.to_directed(), no_single_children=True)
 #     print(name, chosen, target)
 
-N_RUNS = 10  # graphs will average over the N_RUNS runs.
+N_RUNS = 300  # graphs will average over the N_RUNS runs.
 # N_RUNS = 2  # graphs will average over the N_RUNS runs.
-N_ROUNDS = 10000  # number of rounds in each run
+N_ROUNDS = 1000  # number of rounds in each run
 # N_ROUNDS = 2  # number of rounds in each run
 
 
@@ -305,7 +305,7 @@ if __name__ == "__main__":
             label=f"mGISS (fraction: {mGISS_fraction})",
             color="darkblue",
         )
-        # axs[0].legend()
+        axs[0].legend(frameon=False, loc="lower right")
         # axs[0].set_xlabel("Rounds")
         axs[0].set_ylabel("Cumulative Regret")
         axs[0].tick_params(axis="x", labelbottom=False)  # Hide x-axis tick labels
@@ -326,7 +326,7 @@ if __name__ == "__main__":
             label=f"mGISS (fraction: {mGISS_fraction})",
             color="darkblue",
         )
-        axs[1].legend(frameon=False, loc="lower right")
+        # axs[1].legend(frameon=False, loc="lower right")
         axs[1].set_xlabel("Rounds")
         axs[1].set_ylabel("Probability of Best Arm")
         axs[1].spines["top"].set_visible(False)
@@ -338,11 +338,12 @@ if __name__ == "__main__":
 
         # Save fig
         with open(  # Save Figure object for last minute changes
-            f"./Images/conducb_results_{name}_{N_RUNS}runs_{N_ROUNDS}rounds.pkl", "wb"
+            f"./Images/conducb_results_{name}_{N_RUNS}runs_{N_ROUNDS}rounds_{timestamp}.pkl",
+            "wb",
         ) as handle:
             pickle.dump(fig, handle)
         plt.savefig(
-            f"./Images/conducb_results_{name}_{N_RUNS}runs_{N_ROUNDS}rounds.png"
+            f"./Images/conducb_results_{name}_{N_RUNS}runs_{N_ROUNDS}rounds_{timestamp}.png"
         )
 
         # try:
