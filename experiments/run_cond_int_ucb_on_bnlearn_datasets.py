@@ -16,7 +16,7 @@ logger.setLevel(logging.ERROR)  # No warnings from pgmpy, only errors
 DATASETS_TARGETS_DCT = {
     # Smaller:
     "asia": "dysp",
-    "cancer": "Cancer",
+    "cancer": "Dyspnoea",
     "sachs": "Akt",
     # Larger:
     # "survey": "T",  # categorical
@@ -29,16 +29,16 @@ DATASETS_TARGETS_DCT = {
 }
 
 # # Uncomment to check that chosen targets are indeed nodes with most ancestors
-# # (and with more than one parent)
+# # (and with more than one parent), except for the cancer model.
 # for name, target in DATASETS_TARGETS_DCT.items():
 #     bn = get_example_model(name)
 #     chosen = get_node_with_most_ancestors(bn.to_directed(), no_single_children=True)
 #     print(name, chosen, target)
 
-# N_RUNS = 100  # graphs will average over the N_RUNS runs.
-N_RUNS = 2  # graphs will average over the N_RUNS runs.
-# N_ROUNDS = 1000  # number of rounds in each run
-N_ROUNDS = 2  # number of rounds in each run
+N_RUNS = 1000  # graphs will average over the N_RUNS runs.
+# N_RUNS = 2  # graphs will average over the N_RUNS runs.
+N_ROUNDS = 10000  # number of rounds in each run
+# N_ROUNDS = 2  # number of rounds in each run
 
 
 def generate_reward_converter(bn, target):
@@ -204,15 +204,15 @@ if __name__ == "__main__":
 
         # Save fig
         with open(  # Save Figure object for last minute changes
-            f"./Images/ucb_results_{name}_{N_ROUNDS}runs_{N_ROUNDS}rounds.pkl", "wb"
+            f"./Images/ucb_results_{name}_{N_RUNS}runs_{N_ROUNDS}rounds.pkl", "wb"
         ) as handle:
             pickle.dump(fig, handle)
-        plt.savefig(f"./Images/ucb_results_{name}_{N_ROUNDS}runs_{N_ROUNDS}rounds.png")
+        plt.savefig(f"./Images/ucb_results_{name}_{N_RUNS}runs_{N_ROUNDS}rounds.png")
 
-        try:
-            plt.show()
-        except RuntimeError as e:  # Avoid backend-related errors
-            print(e)
+        # try:
+        #     plt.show()
+        # except RuntimeError as e:  # Avoid backend-related errors
+        #     print(e)
 
         # # Free up memory
         # del bn
