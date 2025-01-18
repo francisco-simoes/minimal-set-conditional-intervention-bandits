@@ -34,8 +34,8 @@ class CondIntUCB:
         self.fixed_node_ucbs: dict[Any, FixedNodeContextualUCB] = {}
         for node in self.candidate_nodes:
             # for node in tqdm(self.candidate_nodes):
-            # print(node)
-            # print(mab.bn.states[node])
+            print(f"Creating UCBs for node {node}")
+            print(f"\tstates: {mab.bn.states[node]}")
             self.fixed_node_ucbs[node] = FixedNodeContextualUCB(
                 node, mab, reward_to_float_converter
             )

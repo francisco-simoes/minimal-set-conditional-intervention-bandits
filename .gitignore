@@ -1,1 +1,4 @@
 /_todos.org
+*.out
+*.log
+__pycache__/
