@@ -2,7 +2,6 @@ import concurrent.futures
 import logging
 from typing import Any, Callable, Optional
 
-import dill
 import numpy as np
 from numpy.typing import NDArray
 from pgmpy.global_vars import logger
@@ -19,11 +18,11 @@ MAX_WORKERS = 5  # For parallelization
 
 DATASETS_TARGETS_DCT = {
     # Smaller:
-    "asia": "dysp",
-    "cancer": "Cancer",
-    "sachs": "Akt",
-    # Larger:
+    # "asia": "dysp",
+    "cancer": "Dyspnoea",
+    # "sachs": "Akt",
     # "survey": "T",  # categorical
+    # Larger:
     # "alarm": "BP",
     # "barley": "protein",  # too big
     # "child": "LowerBodyO2",

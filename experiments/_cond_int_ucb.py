@@ -118,7 +118,10 @@ class CondIntUCB:
 
         # Find best node,policy pair
         self.node_expected_rewards = np.nan_to_num(
-            self.node_rewards / self.node_pull_counts
+            self.node_rewards / self.node_pull_counts,
+            nan=0.0,
+            posinf=0.0,
+            neginf=0.0,
         )
         self.expected_rewards = [
             self.node_expected_rewards[i].item() for i in self.selected_nodes_idxs
