@@ -102,8 +102,13 @@ class FixedContextNodeUCB:
 
     def record_details(self):
         # Estimate expected rewards for each arm, and then for each chosen arm
-        self.arm_expected_rewards = np.nan_to_num(self.arm_rewards / self.arm_counts)
-        # (nans from cases where self.arm_counts[i]=0 are turned into zeros)
+        self.arm_expected_rewards = np.nan_to_num(
+            self.arm_rewards / self.arm_counts,
+            nan=0.0,
+            posinf=0.0,
+            neginf=0.0,
+        )
+        # (nans/infs from cases where self.arm_counts[i]=0 are turned into zeros)
         self.expected_rewards = [
             self.arm_expected_rewards[i].item() for i in self.selected_arms
         ]
