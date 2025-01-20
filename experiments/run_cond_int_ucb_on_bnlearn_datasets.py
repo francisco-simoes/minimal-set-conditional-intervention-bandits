@@ -2,7 +2,6 @@ import concurrent.futures
 import logging
 from typing import Any, Callable, Optional
 
-import dill
 import numpy as np
 from numpy.typing import NDArray
 from pgmpy.global_vars import logger
@@ -15,21 +14,22 @@ from _utils import get_node_with_most_ancestors, most_common_list_element
 
 logger.setLevel(logging.ERROR)  # No warnings from pgmpy, only errors
 
-MAX_WORKERS = 5  # For parallelization
+#MAX_WORKERS = 5  # For parallelization (LOCAL)
+MAX_WORKERS = 30  # For parallelization (CLUSTER)
 
 DATASETS_TARGETS_DCT = {
     # Smaller:
-    "asia": "dysp",
-    "cancer": "Cancer",
-    "sachs": "Akt",
+    #"asia": "dysp",
+    #"cancer": "Dyspnoea",
+    #"sachs": "Akt",
+    #"survey": "T",  # categorical
     # Larger:
-    # "survey": "T",  # categorical
-    # "alarm": "BP",
-    # "barley": "protein",  # too big
-    # "child": "LowerBodyO2",
-    # "insurance": "PropCost",
-    # "mildew": "dm4",
-    # "water": "CBODD_12_45",
+    #"alarm": "BP",
+    #"barley": "protein",  # too big
+    "child": "LowerBodyO2",
+    #"insurance": "PropCost",
+    #"mildew": "dm_4",
+    "water": "CBODD_12_45",
 }
 
 # # Uncomment to check that chosen targets are indeed nodes with most ancestors
@@ -41,7 +41,8 @@ DATASETS_TARGETS_DCT = {
 
 N_RUNS = 300  # graphs will average over the N_RUNS runs.
 # N_RUNS = 2  # graphs will average over the N_RUNS runs.
-N_ROUNDS = 1000  # number of rounds in each run
+#N_ROUNDS = 1000  # number of rounds in each run (SMALLER datasets)
+N_ROUNDS = 10000  # number of rounds in each run (LARGER datasets)
 # N_ROUNDS = 2  # number of rounds in each run
 
 
