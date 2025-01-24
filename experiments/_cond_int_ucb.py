@@ -5,9 +5,9 @@ import numpy as np
 from scipy.stats import bernoulli
 from tqdm import tqdm
 
+from _c4_algo import C4_on_target
 from _cond_int_cbn_mab import CondIntCBN_MAB
 from _fixed_node_contextual_ucb import FixedNodeContextualUCB
-from _split_algo import SPLIT_on_target
 from _utils import rowdf_to_dict
 
 
@@ -202,7 +202,7 @@ if __name__ == "__main__":
 
     mab_bf = CondIntCBN_MAB(bn, target="dysp")
     mab_mgiss = CondIntCBN_MAB(
-        bn, target="dysp", search_space_reduction_func=SPLIT_on_target
+        bn, target="dysp", search_space_reduction_func=C4_on_target
     )
     cond_ucb_bf = CondIntUCB(mab_bf, reward_to_float_converter=yes_is_zero_converter)
     cond_ucb_mgiss = CondIntUCB(

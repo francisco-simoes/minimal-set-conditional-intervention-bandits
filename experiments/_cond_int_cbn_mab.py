@@ -4,8 +4,8 @@ from typing import Any, Callable, Optional
 from pandas import DataFrame
 from pgmpy.models import BayesianNetwork
 
+from _c4_algo import C4_on_target
 from _samplers import ContextSamplerBase, RewardSamplerBase
-from _split_algo import SPLIT_on_target
 
 
 class CondIntCBN_MAB(RewardSamplerBase, ContextSamplerBase):
@@ -139,7 +139,7 @@ if __name__ == "__main__":
 
     bn = get_example_model("asia")
     target = "dysp"
-    mab = CondIntCBN_MAB(bn, target, search_space_reduction_func=SPLIT_on_target)
+    mab = CondIntCBN_MAB(bn, target, search_space_reduction_func=C4_on_target)
 
     print("\n=== Testing sample_reward() method on Asia dataset: ===")
     n_samples = 100
@@ -167,7 +167,7 @@ if __name__ == "__main__":
         mab.sample_context("either", n_samples=n_samples),
     )
 
-    print("\n=== Testing using SPLIT for search space reduction on Asia dataset: ===")
+    print("\n=== Testing using C4 for search space reduction on Asia dataset: ===")
     mGISS = mab.candidate_nodes
     print(f"Candidate nodes: {set(mGISS)}")
     print("Expected: {'either', 'bronc', 'smoke'}")

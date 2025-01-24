@@ -3,13 +3,13 @@ import logging
 from typing import Any, Callable, Optional
 
 import numpy as np
+from _c4_algo import C4_on_target
 from numpy.typing import NDArray
 from pgmpy.global_vars import logger
 from pgmpy.utils import get_example_model
 
 from _cond_int_cbn_mab import CondIntCBN_MAB
 from _cond_int_ucb import CondIntUCB
-from _split_algo import SPLIT_on_target
 from _utils import get_node_with_most_ancestors, most_common_list_element
 
 logger.setLevel(logging.ERROR)  # No warnings from pgmpy, only errors
@@ -19,17 +19,11 @@ MAX_WORKERS = 5  # For parallelization (LOCAL)
 
 DATASETS_TARGETS_DCT = {
     # Smaller:
-    # "asia": "dysp",
-    "cancer": "Dyspnoea",
+    "asia": "dysp",
+    # "cancer": "Dyspnoea",
     # "sachs": "Akt",
-    # "survey": "T",  # categorical
     # Larger:
-    # "alarm": "BP",
-    # "barley": "protein",  # too big
     # "child": "LowerBodyO2",
-    # "insurance": "PropCost",
-    # "mildew": "dm_4",
-    # "water": "CBODD_12_45",
 }
 
 # # Uncomment to check that chosen targets are indeed nodes with most ancestors
@@ -39,12 +33,14 @@ DATASETS_TARGETS_DCT = {
 #     chosen = get_node_with_most_ancestors(bn.to_directed(), no_single_children=True)
 #     print(name, chosen, target)
 
-N_RUNS = 500  # graphs will average over the N_RUNS runs.
+N_RUNS = 5  # graphs will average over the N_RUNS runs.
+# N_RUNS = 500  # graphs will average over the N_RUNS runs.
 # N_RUNS = 300  # graphs will average over the N_RUNS runs.
 # N_RUNS = 2  # graphs will average over the N_RUNS runs.
-# N_ROUNDS = 1000  # number of rounds in each run (SMALLER datasets)
-# N_ROUNDS = 10000  # number of rounds in each run (LARGER datasets)
-N_ROUNDS = 1000  # number of rounds in each run (LARGER datasets)
+
+N_ROUNDS = 1000  # number of rounds in each run (SMALLER datasets)
+# N_ROUNDS = 50000  # number of rounds in each run (LARGER datasets)
+# N_ROUNDS = 5000  # number of rounds in each run (LARGER datasets)
 # N_ROUNDS = 2  # number of rounds in each run
 
 
@@ -170,7 +166,7 @@ if __name__ == "__main__":
         mab_mgiss = CondIntCBN_MAB(
             bn,
             target=target,
-            search_space_reduction_func=SPLIT_on_target,
+            search_space_reduction_func=C4_on_target,
             verbose_search_space=True,
         )
         print("\nCreating cond int ucb instance using mGISS")
@@ -349,7 +345,7 @@ if __name__ == "__main__":
             f"./Images/conducb_results_{name}_{N_RUNS}runs_{N_ROUNDS}rounds_{timestamp}.png"
         )
 
-        # try:
-        #     plt.show()
-        # except RuntimeError as e:  # Avoid backend-related errors
-        #     print(e)
+        try:
+            plt.show()
+        except RuntimeError as e:  # Avoid backend-related errors
+            print(e)
