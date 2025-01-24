@@ -3,11 +3,11 @@ import logging
 from typing import Any, Callable, Optional
 
 import numpy as np
-from _c4_algo import C4_on_target
 from numpy.typing import NDArray
 from pgmpy.global_vars import logger
 from pgmpy.utils import get_example_model
 
+from _c4_algo import C4_on_target
 from _cond_int_cbn_mab import CondIntCBN_MAB
 from _cond_int_ucb import CondIntUCB
 from _utils import get_node_with_most_ancestors, most_common_list_element

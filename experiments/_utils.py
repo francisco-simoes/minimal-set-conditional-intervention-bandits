@@ -46,11 +46,11 @@ def rowdf_to_dict(df):
 
 
 def get_node_with_most_ancestors(
-    dag: nx.DiGraph, no_single_children: False
+    dag: nx.DiGraph, no_single_children=False
 ) -> tuple[Any, int]:
     """Find node with most ancestors.
 
-    If no_single_children is True, then find the 2-parent node with most ancestors.
+    If no_single_children is True, then find the non-single-child node with most ancestors.
     """
     # Update the maximum if necessary
     max_ancestors_leaf = None
