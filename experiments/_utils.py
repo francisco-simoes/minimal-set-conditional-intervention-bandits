@@ -85,3 +85,16 @@ def get_node_with_most_ancestors(
 
 def most_common_list_element(lst):
     return max(lst, key=lst.count)
+
+
+def round_2_or_until_nonzero(number):
+    # Try rounding to 2 decimal places
+    rounded = round(number, 2)
+
+    # If rounded value is zero but the number is non-zero, find minimal non-zero precision
+    if rounded == 0 and number != 0:
+        precision = 3
+        while round(number, precision) == 0:
+            precision += 1
+        return round(number, precision)
+    return rounded
