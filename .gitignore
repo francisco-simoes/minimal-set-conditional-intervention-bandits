@@ -3,5 +3,6 @@
 *.log
 __pycache__/
 /experiments/Results/*.pkl
+/experiments/Results/*.zip
 /experiments/Images/conducb*
 /experiments/Images/ucb*
