@@ -10,20 +10,21 @@ DATASET_FILE_DICT: dict[str, str] = {  # Choose histories files to load
     "asia": "./conducb_histories_asia_500runs_5000rounds_27_00_45_32.pkl",
     "sachs": "./conducb_histories_sachs_500runs_5000rounds_22_12_37_40.pkl",
     "child": "./conducb_histories_child_500runs_5000rounds_25_18_03_53.pkl",
+    "pathfinder": "./conducb_histories_pathfinder_300runs_7000rounds_05_05_18_03.pkl",
 }
 
 DATASET_TARGET_DICT: dict[str, str] = {
     "asia": "dysp",
     "sachs": "Akt",
     "child": "LowerBody2",
-    # "pathfinder": "F70",
+    "pathfinder": "F70",
 }
 
 DATASET_N_NODES_DICT: dict[str, int] = {
     "asia": 8,
     "sachs": 11,
     "child": 20,
-    # "pathfinder": 109,
+    "pathfinder": 109,
 }
 
 
@@ -36,6 +37,7 @@ def plot_cumulative_regret_curves(
         histories = pickle.load(handle)
 
     # Plotting
+    plt.figure(figsize=(4.5, 4))
     colors = {"bf": "red", "mgiss": "darkblue"}
     labels = {"bf": "brute-force", "mgiss": "mGISS"}
     for strategy in colors.keys():
@@ -71,7 +73,7 @@ def plot_cumulative_regret_curves(
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
     plt.title(f"{dataset} ({n_nodes} nodes). Target: {target}")
-
+    plt.tight_layout()
     if save:
         plt.savefig(f"../Images/cumulative_regret_curves_{dataset}.png")
 
@@ -88,8 +90,8 @@ if __name__ == "__main__":
         {
             "font.size": 12,
             "axes.titlesize": 14,  # Title font size
-            "axes.labelsize": 12,  # Label font size
-            "legend.fontsize": 12,  # Legend font size
+            "axes.labelsize": 10,  # Label font size
+            "legend.fontsize": 10,  # Legend font size
             "lines.linewidth": 1.5,
         }
     )

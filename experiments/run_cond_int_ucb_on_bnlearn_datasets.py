@@ -18,10 +18,10 @@ MAX_WORKERS = 2  # For parallelization (LOCAL)
 # MAX_WORKERS = 30  # For parallelization (CLUSTER)
 
 DATASETS_TARGETS_DCT = {
-    "asia": "dysp",
-    "sachs": "Akt",
+    # "asia": "dysp",
+    # "sachs": "Akt",
     "child": "LowerBodyO2",
-    "pathfinder": "F70",
+    # "pathfinder": "F70",
 }
 
 # # Uncomment to check that chosen targets are indeed nodes with most ancestors
@@ -31,14 +31,14 @@ DATASETS_TARGETS_DCT = {
 #     chosen = get_node_with_most_ancestors(bn.to_directed(), no_single_children=True)
 #     print(name, chosen, target)
 
-N_RUNS = 5  # graphs will average over the N_RUNS runs.
-# N_RUNS = 500  # graphs will average over the N_RUNS runs.
+# N_RUNS = 5  # graphs will average over the N_RUNS runs.
+N_RUNS = 500  # graphs will average over the N_RUNS runs.
 # N_RUNS = 2  # graphs will average over the N_RUNS runs.
 
 # N_ROUNDS = 2000  # number of rounds in each run (SMALLER datasets)
 # N_ROUNDS = 50000  # number of rounds in each run (LARGER datasets)
-# N_ROUNDS = 5000  # number of rounds in each run (LARGER datasets)
-N_ROUNDS = 100  # number of rounds in each run
+N_ROUNDS = 5000  # number of rounds in each run (LARGER datasets)
+# N_ROUNDS = 100  # number of rounds in each run
 
 
 def generate_reward_converter(bn, target):
